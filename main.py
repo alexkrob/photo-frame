@@ -4,7 +4,7 @@ import random
 from threading import Thread
 import time
 import tomllib
-from queue import Queue, Empty
+from queue import Queue, Empty, Full
 
 
 from gpio import *
@@ -23,12 +23,15 @@ def main():
     displayed_files = []
 
     window_name = 'Slideshow'
-    setup_window(window_name)
+    image_channel = Queue(10)
+    display_thread = display(window_name, image_channel)
+    display_thread.start()
 
     gpio_pin = config.get('gpio_pin', None)
     gpio_channel = Queue()
     if gpio_pin is not None:
-        gpio_monitor_thread = Thread(target=monitor_gpio, args=(gpio_pin, gpio_channel))
+        gpio_monitor_thread = Thread(
+            target=monitor_gpio, args=(gpio_pin, gpio_channel))
         gpio_monitor_thread.start()
 
     while True:
@@ -40,10 +43,16 @@ def main():
             pass
 
         random_file_index = random.randrange(0, len(files))
-        displayed_files.append(files[random_file_index])
-        image = get_fullscreen_image(displayed_files[-1])
+        random_file = files[random_file_index]
+        image = get_fullscreen_image(random_file)
+        
         if image is not None:
-            show_image(window_name, image, config.get('seconds_per_photo', 5))
+            try:
+                image_channel.put_nowait((image, config.get('seconds_per_photo', 5)))
+                displayed_files.append(files[random_file_index])
+            except Full:
+                pass
+        
         files = [f for f in get_files(
             photo_folder) if f not in displayed_files]
 

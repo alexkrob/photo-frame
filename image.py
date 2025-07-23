@@ -1,15 +1,21 @@
 import cv2
 import numpy as np
 import screeninfo
+from queue import Queue
 
 screen = screeninfo.get_monitors()[0]
 
 
-def setup_window(window_name: str):
+def display(window_name: str, image_queue: Queue):
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     cv2.moveWindow(window_name, screen.x - 1, screen.y - 1)
     cv2.setWindowProperty(
         window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    while True:
+        image, display_time_s = image_queue.get()
+        cv2.imshow(window_name, image)
+        cv2.waitKey(display_time_s * 1000)
 
 
 def get_fullscreen_image(filename: str):
@@ -39,8 +45,3 @@ def get_fullscreen_image(filename: str):
 
         return background
     return None
-
-
-def show_image(window_name, image, secs: int):
-    cv2.imshow(window_name, image)
-    cv2.waitKey(secs * 1000)
