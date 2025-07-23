@@ -1,7 +1,7 @@
 import cv2
 import os
 import random
-import threading
+from threading import Thread
 import time
 import tomllib
 from queue import Queue, Empty
