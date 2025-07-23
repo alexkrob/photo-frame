@@ -28,5 +28,5 @@ def read_gpio(pin_number: int):
 
 
 if __name__ == '__main__':
-    read_gpio(29)
-
+    for output in read_gpio(29):
+        print(f'{output}')

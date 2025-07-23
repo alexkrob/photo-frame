@@ -1,10 +1,13 @@
+import cv2
 import time
 from gpio import *
 
+
 def main():
-    for gpio_value in read_gpio(29):
-        print(f'{gpio_value}')
-        time.sleep(0.1) 
+    image = cv2.imread()
+    cv2.imshow("Slideshow", image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
