@@ -24,7 +24,7 @@ def main():
 
     window_name = 'Slideshow'
     image_channel = Queue(10)
-    display_thread = display(window_name, image_channel)
+    display_thread = Thread(target=display, args=(window_name, image_channel))
     display_thread.start()
 
     gpio_pin = config.get('gpio_pin', None)
@@ -45,14 +45,15 @@ def main():
         random_file_index = random.randrange(0, len(files))
         random_file = files[random_file_index]
         image = get_fullscreen_image(random_file)
-        
+
         if image is not None:
             try:
-                image_channel.put_nowait((image, config.get('seconds_per_photo', 5)))
+                image_channel.put_nowait(
+                    (image, config.get('seconds_per_photo', 5)))
                 displayed_files.append(files[random_file_index])
             except Full:
                 pass
-        
+
         files = [f for f in get_files(
             photo_folder) if f not in displayed_files]
 
