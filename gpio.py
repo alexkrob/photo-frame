@@ -1,4 +1,13 @@
 import time
+from datetime import datetime
+from queue import Queue
+from enum import Enum
+
+
+class Edge(Enum):
+    RISING = 0
+    FALLING = 1
+
 
 try:
     import RPi.GPIO as GPIO
@@ -25,6 +34,17 @@ def read_gpio(pin_number: int):
     except KeyboardInterrupt:
         if gpio_enabled:
             GPIO.cleanup()
+
+
+def monitor_gpio(pin_number: int, channel: Queue):
+    state = 0
+
+    for value in read_gpio(pin_number):
+        if state != value:
+            channel.put({f'Type': Edge.RISING if value ==
+                        1 else Edge.FALLING, 'Timestamp': datetime.now()})
+            state = value
+        time.sleep(0.1)
 
 
 if __name__ == '__main__':
