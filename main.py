@@ -1,14 +1,14 @@
-import cv2
 import os
 import random
+from datetime import timedelta
 from threading import Thread
-import time
 import tomllib
 from queue import Queue, Empty, Full
 
 
 from gpio import *
 from image import *
+from display import *
 
 ALLOWED_EXTENSIONS = ['.HEIC', '.JPG', '.PNG']
 
@@ -29,18 +29,35 @@ def main():
 
     gpio_pin = config.get('gpio_pin', None)
     gpio_channel = Queue()
+    gpio_activity = None
     if gpio_pin is not None:
         gpio_monitor_thread = Thread(
             target=monitor_gpio, args=(gpio_pin, gpio_channel))
         gpio_monitor_thread.start()
 
+    display_status = DisplayState.ON
+
     while True:
         try:
             while True:
-                activity = gpio_channel.get_nowait()
-                print(f'{activity}')
+                gpio_activity = gpio_channel.get_nowait()
         except Empty:
             pass
+
+        if gpio_activity is not None:
+            edge, timestamp = gpio_activity
+
+            if (edge == Edge.FALLING and
+                    datetime.now() - timestamp > timedelta(minutes=config.get('display_inactivity_timeout_mins', 10)) and
+                    display_status == DisplayState.ON):
+                display_status = DisplayState.OFF
+                toggle_display(display_status, config.get(
+                    'default_display', ':0'))
+
+            if edge == Edge.RISING and display_status == DisplayState.OFF:
+                display_status = DisplayState.ON
+                toggle_display(display_status, config.get(
+                    'default_display', ':0'))
 
         random_file_index = random.randrange(0, len(files))
         random_file = files[random_file_index]
@@ -60,8 +77,6 @@ def main():
         if len(files) == 0:
             files = get_files(photo_folder)
             displayed_files = []
-
-    cv2.destroyAllWindows()
 
 
 def get_files(photo_folder):

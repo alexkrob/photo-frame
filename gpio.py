@@ -41,8 +41,8 @@ def monitor_gpio(pin_number: int, channel: Queue):
 
     for value in read_gpio(pin_number):
         if state != value:
-            channel.put({f'Type': Edge.RISING if value ==
-                        1 else Edge.FALLING, 'Timestamp': datetime.now()})
+            channel.put((Edge.RISING if value ==
+                        1 else Edge.FALLING,  datetime.now()))
             state = value
         time.sleep(0.1)
 

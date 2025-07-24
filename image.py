@@ -17,6 +17,8 @@ def display(window_name: str, image_queue: Queue):
         cv2.imshow(window_name, image)
         cv2.waitKey(display_time_s * 1000)
 
+    cv2.destroyAllWindows()
+
 
 def get_fullscreen_image(filename: str):
     image = cv2.imread(filename)
