@@ -80,8 +80,9 @@ def main():
 
 
 def get_files(photo_folder):
-    files = [os.path.join(photo_folder, f) for f in os.listdir(photo_folder) if os.path.isfile(os.path.join(
-        photo_folder, f)) and os.path.splitext(f)[1].upper() in ALLOWED_EXTENSIONS]
+    files = os.listdir(photo_folder)
+    files = [os.path.join(photo_folder, f) for f in files if os.path.splitext(f)[
+        1].upper() in ALLOWED_EXTENSIONS]
 
     random.shuffle(files)
 
