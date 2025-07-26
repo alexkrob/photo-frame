@@ -67,7 +67,7 @@ def main():
             try:
                 image_channel.put_nowait(
                     (image, config.get('seconds_per_photo', 5)))
-                displayed_files.append(files[random_file_index])
+                displayed_files.append(random_file)
             except Full:
                 pass
 
