@@ -27,8 +27,7 @@ def main():
     queued_files = []
 
     window_name = 'Slideshow'
-    max_queued_photos = config.get('max_queued_photos', 10)
-    image_channel = Queue(max_queued_photos)
+    image_channel = Queue(config.get('max_queued_photos', 10))
     display_thread = Thread(target=display, args=(window_name, image_channel))
     display_thread.start()
 
@@ -75,7 +74,7 @@ def main():
 
         if image is not None:
             try:
-                if len(image_channel) < max_queued_photos:
+                if not image_channel.full():
                     image_channel.put_nowait(
                         (image, config.get('seconds_per_photo', 5)))
                     queued_files.append(random_file)
