@@ -1,6 +1,7 @@
 import os
 import random
 from datetime import timedelta
+import logging
 from threading import Thread
 import tomllib
 from queue import Queue, Empty, Full
@@ -12,6 +13,8 @@ from display import *
 
 ALLOWED_EXTENSIONS = ['.HEIC', '.JPG', '.PNG']
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s\t%(message)s')
 
 def main():
     with open("config.toml", "rb") as f:
@@ -41,6 +44,7 @@ def main():
         try:
             while True:
                 gpio_activity = gpio_channel.get_nowait()
+                logging.debug(f'Motion sensor triggered {gpio_activity[0]} at {gpio_activity[1]}.')
         except Empty:
             pass
 
@@ -50,11 +54,13 @@ def main():
             if (edge == Edge.FALLING and
                     datetime.now() - timestamp > timedelta(minutes=config.get('display_inactivity_timeout_mins', 10)) and
                     display_status == DisplayState.ON):
+                logging.debug('Inactivity timeout elapsed. Turning display off.')
                 display_status = DisplayState.OFF
                 toggle_display(display_status, config.get(
                     'default_display', ':0'))
 
             if edge == Edge.RISING and display_status == DisplayState.OFF:
+                logging.debug('Motion detected. Turning display on.')
                 display_status = DisplayState.ON
                 toggle_display(display_status, config.get(
                     'default_display', ':0'))
@@ -68,14 +74,19 @@ def main():
                 image_channel.put_nowait(
                     (image, config.get('seconds_per_photo', 5)))
                 displayed_files.append(random_file)
+                logging.debug(f'Queued {random_file} for display.')
             except Full:
+                logging.debug(f'Could not queue {random_file} for display (queue full).')
                 pass
 
         files = [f for f in get_files(
             photo_folder) if f not in displayed_files]
 
+        logging.debug(f'Found {len(files)} photos yet to be displayed ({len(displayed_files)} already shown).')
+
         if len(files) == 0:
             files = get_files(photo_folder)
+            logging.debug(f'Out of files in queue. Refreshing {len(files)} photos.')
             displayed_files = []
 
 
