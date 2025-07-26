@@ -71,6 +71,7 @@ def main():
         random_file_index = random.randrange(0, len(files))
         random_file = files[random_file_index]
         image = get_fullscreen_image(random_file)
+        queued_new_photo = False
 
         if image is not None:
             try:
@@ -79,16 +80,18 @@ def main():
                         (image, config.get('seconds_per_photo', 5)))
                     queued_files.append(random_file)
                     logging.debug(f'Queued {random_file} for display.')
+                    queued_new_photo = True
             except Full:
                 logging.debug(
                     f'Could not queue {random_file} for display (queue full).')
                 pass
 
-        files = [f for f in get_files(
-            photo_folder) if f not in queued_files]
+        if queued_new_photo:
+            files = [f for f in get_files(
+                photo_folder) if f not in queued_files]
 
-        logging.debug(
-            f'Found {len(files)} photos yet to be displayed ({len(queued_files)} already queued).')
+            logging.debug(
+                f'Found {len(files)} photos yet to be displayed ({len(queued_files)} already queued).')
 
         if len(files) == 0:
             files = get_files(photo_folder)
