@@ -14,7 +14,7 @@ from display import *
 ALLOWED_EXTENSIONS = ['.HEIC', '.JPG', '.PNG']
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s\t%(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s\t%(message)s')
 
 
 def main():
@@ -43,7 +43,7 @@ def main():
 
     while True:
         try:
-            while True:
+            while not gpio_channel.empty():
                 gpio_activity = gpio_channel.get_nowait()
                 logging.debug(
                     f'Motion sensor triggered {gpio_activity[0]} at {gpio_activity[1]}.')
@@ -79,18 +79,23 @@ def main():
                     image_channel.put_nowait(
                         (image, config.get('seconds_per_photo', 5)))
                     queued_files.append(random_file)
-                    logging.debug(f'Queued {random_file} for display.')
+                    logging.info(f'Queued {random_file} for display.')
                     queued_new_photo = True
             except Full:
-                logging.debug(
+                logging.warning(
                     f'Could not queue {random_file} for display (queue full).')
                 pass
+        else:
+            logging.warning(f'Could not append {random_file} to queue (could not process image).')
+            queued_files.append(random_file)
+            queued_new_photo = True
+
 
         if queued_new_photo:
             files = [f for f in get_files(
                 photo_folder) if f not in queued_files]
 
-            logging.debug(
+            logging.info(
                 f'Found {len(files)} photos yet to be displayed ({len(queued_files)} already queued).')
 
         if len(files) == 0:
