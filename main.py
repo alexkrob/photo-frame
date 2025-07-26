@@ -16,6 +16,7 @@ ALLOWED_EXTENSIONS = ['.HEIC', '.JPG', '.PNG']
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s\t%(message)s')
 
+
 def main():
     with open("config.toml", "rb") as f:
         config = tomllib.load(f)
@@ -23,10 +24,11 @@ def main():
     photo_folder = config.get('target_folder', None)
 
     files = get_files(photo_folder)
-    displayed_files = []
+    queued_files = []
 
     window_name = 'Slideshow'
-    image_channel = Queue(10)
+    max_queued_photos = config.get('max_queued_photos', 10)
+    image_channel = Queue(max_queued_photos)
     display_thread = Thread(target=display, args=(window_name, image_channel))
     display_thread.start()
 
@@ -44,7 +46,8 @@ def main():
         try:
             while True:
                 gpio_activity = gpio_channel.get_nowait()
-                logging.debug(f'Motion sensor triggered {gpio_activity[0]} at {gpio_activity[1]}.')
+                logging.debug(
+                    f'Motion sensor triggered {gpio_activity[0]} at {gpio_activity[1]}.')
         except Empty:
             pass
 
@@ -54,7 +57,8 @@ def main():
             if (edge == Edge.FALLING and
                     datetime.now() - timestamp > timedelta(minutes=config.get('display_inactivity_timeout_mins', 10)) and
                     display_status == DisplayState.ON):
-                logging.debug('Inactivity timeout elapsed. Turning display off.')
+                logging.debug(
+                    'Inactivity timeout elapsed. Turning display off.')
                 display_status = DisplayState.OFF
                 toggle_display(display_status, config.get(
                     'default_display', ':0'))
@@ -71,23 +75,27 @@ def main():
 
         if image is not None:
             try:
-                image_channel.put_nowait(
-                    (image, config.get('seconds_per_photo', 5)))
-                displayed_files.append(random_file)
-                logging.debug(f'Queued {random_file} for display.')
+                if len(image_channel) < max_queued_photos:
+                    image_channel.put_nowait(
+                        (image, config.get('seconds_per_photo', 5)))
+                    queued_files.append(random_file)
+                    logging.debug(f'Queued {random_file} for display.')
             except Full:
-                logging.debug(f'Could not queue {random_file} for display (queue full).')
+                logging.debug(
+                    f'Could not queue {random_file} for display (queue full).')
                 pass
 
         files = [f for f in get_files(
-            photo_folder) if f not in displayed_files]
+            photo_folder) if f not in queued_files]
 
-        logging.debug(f'Found {len(files)} photos yet to be displayed ({len(displayed_files)} already shown).')
+        logging.debug(
+            f'Found {len(files)} photos yet to be displayed ({len(queued_files)} already queued).')
 
         if len(files) == 0:
             files = get_files(photo_folder)
-            logging.debug(f'Out of files in queue. Refreshing {len(files)} photos.')
-            displayed_files = []
+            logging.debug(
+                f'Out of files in queue. Refreshing {len(files)} photos.')
+            queued_files = []
 
 
 def get_files(photo_folder):
